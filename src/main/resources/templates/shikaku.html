@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shikaku - GameStudio</title>
+    <link rel="stylesheet" th:href="@{/css/shikaku.css}">
+</head>
+<body>
+<main class="page-shell" th:classappend="${gameReady} ? ' game-page' : ''">
+    <section class="hero" th:classappend="${not gameReady} ? ' menu-hero' : ' game-hero'">
+        <div>
+            <p class="eyebrow">GameStudio / Logic puzzle</p>
+            <h1>Shikaku</h1>
+            <p class="lead">Divide the grid into rectangles. Each rectangle must contain exactly one clue and its area must match the clue number.</p>
+        </div>
+
+    </section>
+
+    <section class="menu-layout" th:if="${not gameReady}">
+        <section class="service-card new-game-card">
+            <div th:if="${not playerReady}" class="auth-entry">
+                <p class="auth-status" th:text="${message}">Status message</p>
+
+                <div class="auth-choice" th:if="${authMode == 'choice'}">
+                    <h2>Start</h2>
+                    <p>Choose what you need first.</p>
+                    <div class="auth-choice-buttons">
+                        <a class="button-link" th:href="@{/shikaku(auth='register')}">Registration</a>
+                        <a class="button-link secondary-button" th:href="@{/shikaku(auth='login')}">Sign in</a>
+                    </div>
+                </div>
+
+                <form th:if="${authMode == 'register'}" th:action="@{/shikaku/player}" method="post" class="auth-form">
+                    <h2>Create account</h2>
+                    <label for="register-player">Username</label>
+                    <input id="register-player" name="player" th:value="${player}" maxlength="32" required autofocus>
+                    <label for="register-password">Password</label>
+                    <input id="register-password" type="password" name="password" minlength="4" maxlength="64" required>
+                    <div class="auth-form-actions">
+                        <button type="submit">Register</button>
+                        <a class="button-link secondary-button" th:href="@{/shikaku(auth='choice')}">Back</a>
+                    </div>
+                </form>
+
+                <form th:if="${authMode == 'login'}" th:action="@{/shikaku/login}" method="post" class="auth-form">
+                    <h2>Sign in</h2>
+                    <label for="login-player">Username</label>
+                    <input id="login-player" name="player" maxlength="32" required autofocus>
+                    <label for="login-password">Password</label>
+                    <input id="login-password" type="password" name="password" minlength="4" maxlength="64" required>
+                    <div class="auth-form-actions" th:if="${not #strings.isEmpty(passwordResetCandidate)}">
+                        <a class="button-link" th:href="@{/shikaku(auth='reset')}">Change password</a>
+                    </div>
+                    <div class="auth-form-actions">
+                        <button type="submit" class="secondary-button">Sign in</button>
+                        <a class="button-link" th:href="@{/shikaku(auth='choice')}">Back</a>
+                    </div>
+                </form>
+
+                <form th:if="${authMode == 'reset'}" th:action="@{/shikaku/password}" method="post" class="auth-form">
+                    <h2>Change password</h2>
+                    <label for="reset-player">Username</label>
+                    <input id="reset-player" name="player" maxlength="32" th:value="${passwordResetCandidate}" required autofocus>
+                    <label for="reset-password">New password</label>
+                    <input id="reset-password" type="password" name="password" minlength="4" maxlength="64" required>
+                    <div class="auth-form-actions">
+                        <button type="submit">Save new password</button>
+                        <a class="button-link secondary-button" th:href="@{/shikaku(auth='login')}">Back to sign in</a>
+                        <a class="button-link" th:href="@{/shikaku(auth='choice')}">Menu</a>
+                    </div>
+                </form>
+            </div>
+
+            <form th:if="${playerReady}" th:action="@{/shikaku/new}" method="get" class="difficulty-card">
+                <h2>New game</h2>
+                <p class="difficulty-player" th:text="|Player: ${player}|">Player</p>
+                <p>Choose field difficulty.</p>
+                <div class="difficulty">
+                    <button type="submit" name="size" value="4">Easy 4x4</button>
+                    <button type="submit" name="size" value="6">Medium 6x6</button>
+                    <button type="submit" name="size" value="8">Hard 8x8</button>
+                </div>
+                <div class="auth-form-actions">
+                    <button type="submit" formaction="/shikaku/exit" formmethod="post"
+                            data-confirm-button="Log out from this account?">
+                        Log out
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="service-card menu-scores">
+            <h2>Top scores</h2>
+            <table>
+                <thead>
+                <tr><th>Player</th><th>Level</th><th>Points</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="score : ${scores}">
+                    <td th:text="${score.player}">Player</td>
+                    <td th:text="${score.difficultyLabel}">Easy</td>
+                    <td th:text="${score.points}">0</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(scores)}"><td colspan="3">No scores yet.</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="service-card menu-ratings">
+            <h2>Player ratings</h2>
+            <table>
+                <thead>
+                <tr><th>Player</th><th>Rating</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="rating : ${ratings}">
+                    <td th:text="${rating.player}">Player</td>
+                    <td th:text="|${rating.rating}/5|">5/5</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(ratings)}"><td colspan="2">No ratings yet.</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="service-card rules-card">
+            <h2>Quick rules</h2>
+            <p>Fill the whole board with rectangles.</p>
+            <p>Each rectangle must contain exactly one numbered clue.</p>
+            <p>The rectangle area must be equal to the clue number.</p>
+            <p>Rectangles cannot overlap and cannot contain another clue.</p>
+        </section>
+
+        <section class="metric-card menu-rating">
+            <span>Average rating</span>
+            <strong th:text="|${averageRating}/5|">0/5</strong>
+            <small th:text="${message}">Menu status</small>
+        </section>
+
+        <section class="service-card comments-card">
+            <h2>Comments</h2>
+            <div class="comment" th:each="comment : ${comments}">
+                <strong th:text="${comment.player}">Player</strong>
+                <p th:text="${comment.comment}">Comment</p>
+            </div>
+            <p th:if="${#lists.isEmpty(comments)}">No comments yet.</p>
+        </section>
+    </section>
+
+    <section class="game-layout" th:if="${gameReady}" th:classappend="${solved} ? ' solved-layout' : ''">
+        <div class="board-column">
+        <div class="board-panel">
+            <div class="status-bar">
+                <span th:text="${message}">Message</span>
+                <div class="game-meta">
+                    <strong th:text="${game.state}">NEW</strong>
+                    <span class="timer"
+                          th:attr="data-started-at=${startedAt},data-solved=${solved}"
+                          th:text="|Time: ${elapsedSeconds}s|">Time: 0s</span>
+                </div>
+            </div>
+
+            <section class="victory-card" th:if="${solved}">
+                <p class="eyebrow">Victory</p>
+                <h2>Congratulations!</h2>
+                <p th:if="${victoryRank != null}" th:text="|You scored ${victoryPoints} points and placed #${victoryRank} in the top.|">You placed #1.</p>
+                <p th:if="${victoryRank == null}" th:text="|You scored ${latestSolvedPoints} points, but the score was not saved because you have a better score: ${victoryPoints} points.|">Score was not saved because a better score already exists.</p>
+                <div class="victory-actions">
+                    <form th:action="@{/shikaku/give-up}" method="post">
+                        <button type="submit">Choose another difficulty</button>
+                    </form>
+                    <form th:action="@{/shikaku/exit}" method="post">
+                        <button type="submit" class="secondary-button">Exit game</button>
+                    </form>
+                </div>
+            </section>
+
+            <div class="board" th:style="|--size:${board.columnCount}|">
+                <div th:each="row : ${rows}" class="board-row">
+                    <div th:each="column : ${columns}"
+                         class="cell"
+                         th:attr="data-coordinate=|${row}:${column}|"
+                         th:classappend="${@shikakuController.isCovered(row, column)} ? ' covered' : ''">
+                        <span th:if="${@shikakuController.getClue(row, column) != null}"
+                              class="clue"
+                              th:text="${@shikakuController.getClue(row, column).value}">1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        </div>
+
+        <aside class="forms-panel" th:if="${not solved}">
+            <div class="player-card">
+                <h2 th:text="|Player: ${player}|">Player</h2>
+                <p class="change-player">Game is running on the website.</p>
+                <div class="player-actions">
+                    <form th:action="@{/shikaku/give-up}" method="post">
+                        <button type="submit" class="secondary-button">Surrender and choose difficulty</button>
+                    </form>
+                    <form th:action="@{/shikaku/exit}" method="post" data-confirm="Log out from this account?">
+                        <button type="submit">Log out</button>
+                    </form>
+                </div>
+            </div>
+            <div class="forms-grid">
+                <form th:action="@{/shikaku/place}" method="post" class="action-card">
+                    <h2>Place rectangle</h2>
+                    <label>Clue row <input type="number" name="clueRow" min="0" th:max="${board.rowCount - 1}" required></label>
+                    <label>Clue column <input type="number" name="clueColumn" min="0" th:max="${board.columnCount - 1}" required></label>
+                    <label>Top/first row <input type="number" name="row1" min="0" th:max="${board.rowCount - 1}" required></label>
+                    <label>Top/first column <input type="number" name="column1" min="0" th:max="${board.columnCount - 1}" required></label>
+                    <label>Bottom/second row <input type="number" name="row2" min="0" th:max="${board.rowCount - 1}" required></label>
+                    <label>Bottom/second column <input type="number" name="column2" min="0" th:max="${board.columnCount - 1}" required></label>
+                    <button type="submit">Place</button>
+                </form>
+
+                <form th:action="@{/shikaku/remove}" method="post" class="action-card compact">
+                    <h2>Remove</h2>
+                    <label>Clue row <input type="number" name="clueRow" min="0" th:max="${board.rowCount - 1}" required></label>
+                    <label>Clue column <input type="number" name="clueColumn" min="0" th:max="${board.columnCount - 1}" required></label>
+                    <button type="submit">Remove rectangle</button>
+                </form>
+            </div>
+        </aside>
+
+        <aside class="service-panel">
+            <section class="metric-card">
+                <span>Average rating</span>
+                <strong th:text="|${averageRating}/5|">0/5</strong>
+                <small th:text="|Your rating: ${playerRating}/5|">Your rating: 0/5</small>
+            </section>
+
+            <form th:action="@{/shikaku/rating}" method="post" class="service-card">
+                <h2>Rate Shikaku</h2>
+                <div class="stars">
+                    <button th:each="star : ${#numbers.sequence(1, 5)}" type="submit" name="rating" th:value="${star}" th:text="${star}">1</button>
+                </div>
+            </form>
+
+            <section class="service-card">
+                <h2>Player ratings</h2>
+                <table>
+                    <thead>
+                    <tr><th>Player</th><th>Rating</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="rating : ${ratings}">
+                        <td th:text="${rating.player}">Player</td>
+                        <td th:text="|${rating.rating}/5|">5/5</td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(ratings)}"><td colspan="2">No ratings yet.</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <form th:action="@{/shikaku/comment}" method="post" class="service-card">
+                <h2>Add comment</h2>
+                <textarea name="text" rows="4" maxlength="300" placeholder="What do you think about the game?" required></textarea>
+                <button type="submit">Send comment</button>
+            </form>
+
+            <section class="service-card">
+                <h2>Top scores</h2>
+                <table>
+                    <thead>
+                    <tr><th>Player</th><th>Level</th><th>Points</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="score : ${scores}">
+                        <td th:text="${score.player}">Player</td>
+                        <td th:text="${score.difficultyLabel}">Easy</td>
+                        <td th:text="${score.points}">0</td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(scores)}"><td colspan="3">No scores yet.</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="service-card">
+                <h2>Comments</h2>
+                <div class="comment" th:each="comment : ${comments}">
+                    <strong th:text="${comment.player}">Player</strong>
+                    <p th:text="${comment.comment}">Comment</p>
+                </div>
+                <p th:if="${#lists.isEmpty(comments)}">No comments yet.</p>
+            </section>
+
+        </aside>
+    </section>
+</main>
+<script>
+    document.querySelectorAll("form[data-confirm]").forEach((form) => {
+        form.addEventListener("submit", (event) => {
+            const message = form.dataset.confirm;
+            if (message && !window.confirm(message)) {
+                event.preventDefault();
+            }
+        });
+    });
+
+    document.querySelectorAll("button[data-confirm-button]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+            const message = button.dataset.confirmButton;
+            if (message && !window.confirm(message)) {
+                event.preventDefault();
+            }
+        });
+    });
+
+    const timer = document.querySelector(".timer");
+    if (timer && timer.dataset.solved !== "true") {
+        const startedAt = Number(timer.dataset.startedAt);
+        const updateTimer = () => {
+            const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+            timer.textContent = `Time: ${elapsed}s`;
+        };
+        updateTimer();
+        setInterval(updateTimer, 1000);
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+### ===================== SCORE =====================
+
+### GET top scores
+GET http://localhost:8081/api/score/shikaku
+
+### ADD score
+POST http://localhost:8081/api/score
+Content-Type: application/json
+
+{
+  "game": "shikaku",
+  "player": "test",
+  "points": 500,
+  "playedOn": "2026-04-15T12:00:00"
+}
+
+
+### ===================== COMMENT =====================
+
+### GET comments
+GET http://localhost:8081/api/comment/shikaku
+
+### ADD comment
+POST http://localhost:8081/api/comment
+Content-Type: application/json
+
+{
+  "game": "shikaku",
+  "player": "test",
+  "comment": "nice game",
+  "commentedOn": "2026-04-15T12:00:00"
+}
+
+
+### ===================== RATING =====================
+
+### GET average rating
+GET http://localhost:8081/api/rating/shikaku
+
+### GET player rating
+GET http://localhost:8081/api/rating/shikaku/test
+
+### SET rating
+POST http://localhost:8081/api/rating
+Content-Type: application/json
+
+{
+  "game": "shikaku",
+  "player": "test",
+  "rating": 5
+}
